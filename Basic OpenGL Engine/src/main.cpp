@@ -19,16 +19,77 @@ int windowHeight = 800;
 int mousepositionX;
 int mousepositionY;
 
-/* Basic Square to Move Around and Stuff */
-float squarePosX = 0, squarePosY = 0, squarePosZ = 0;
-float squareSize = 0.25;
+/* Meshes loaded in from an OBJ file */
+Mesh model1("./res/monkey.obj");
+Mesh model2("./res/chest.obj");
+Mesh model3("./res/sphere.obj");
+Mesh model4("./res/crate.obj");
 
-/* Mesh loaded in from an OBJ file */
-Mesh model("./res/monkey.obj");
+//Can enable and disable the lighting dynamically during runtime
+bool lightingEnabled = true;
+
+//Can switch between 1 and 4 viewports dynamically during runtime
+bool singleViewport = true;
 
 // A few conversions to know
+float radToDeg = 180.f / 3.14159f;
+float degToRad = 3.14159f / 180.0f;
 
+//Initializes all of the open gl variables (lighting, back face culling, etc)
+void initGLValues(int argc, char **argv)
+{
+	/* --------- All lighting code below is taken from the internet tutorial for now --------- */
+	//Enable the lighting
+	glEnable(GL_LIGHTING);
+	glEnable(GL_LIGHT0);
+	glShadeModel(GL_SMOOTH);
 
+	// Create light components
+	GLfloat ambientLight[] = { 0.2f, 0.2f, 0.2f, 1.0f };
+	GLfloat diffuseLight[] = { 0.8f, 0.8f, 0.8, 1.0f };
+	GLfloat specularLight[] = { 0.5f, 0.5f, 0.5f, 1.0f };
+	GLfloat position[] = { -5.0f, 1.0f, -4.0f, 1.0f };
+
+	// Assign created components to GL_LIGHT0
+	glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLight);
+	glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
+	glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight);
+	glLightfv(GL_LIGHT0, GL_POSITION, position);
+
+	// enable color tracking
+	glEnable(GL_COLOR_MATERIAL);
+	// set material properties which will be assigned by glColor
+	glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+	/* --------- All lighting code above is taken from the internet tutorial for now --------- */
+
+	//Sets up back face culling
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_BACK);
+
+	/* initialize the window and OpenGL properly */
+	glutInit(&argc, argv);
+	glEnable(GL_DEPTH_TEST);
+	glutInitWindowSize(windowWidth, windowHeight);
+	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE);
+	glutCreateWindow("Game Window");
+}
+
+//Allows the user to toggle the lighting engine on and off using a key press
+void toggleLighting()
+{
+	lightingEnabled = !lightingEnabled;
+}
+
+//Allows the user to toggle the viewports between 1 and 4
+void toggleViewports()
+{
+	singleViewport = !singleViewport;
+
+	if (singleViewport)
+		cout << "Rendering a single viewport!" << endl;
+	else
+		cout << "Rendering 4 separate viewports!" << endl;
+}
 
 /* function DisplayCallbackFunction(void)
 * Description:
@@ -37,32 +98,90 @@ Mesh model("./res/monkey.obj");
 */
 void DisplayCallbackFunction(void)
 {
-	/* clear the screen */
-	glViewport(0, 0, windowWidth, windowHeight); //(0,0) is the top left
+	//Clear the screen
 	glClearColor(0.2f, 0.2f, 0.2f, 0.8f); //Sets the background colour
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //Clears the colour buffer and the depth buffer (not sure what the depth buffer is)
 	glMatrixMode(GL_PROJECTION); //Sets up the projection matrix, will learn more later
 	glLoadIdentity(); //Loads an identity matrix to 'wipe' the transformations
 
-	/* This is where we draw things */
-	glColor3f(0.33, 0.22f, 0.78f);
-
-	glEnable(GL_CULL_FACE);
-	glCullFace(GL_BACK);
-
-	glBegin(GL_TRIANGLES);
+					  //Decides whether or not to render the lighting in the scene depending on the user's request
+	if (lightingEnabled)
 	{
-		//OpenGL draws counter-clockwise so start from bottom left and then go around (ie: quadrant III, IV, I, II)
-		/*glVertex3f(0.25, -0.25, 0);
-		glVertex3f(-0.25, -0.25, 0);
-		glVertex3f(0, 0.25, 0);*/
-
-		model.draw();
+		glEnable(GL_LIGHTING);
+		glEnable(GL_LIGHT0);
 	}
-	glEnd();
+	else
+	{
+		glDisable(GL_LIGHTING);
+		glDisable(GL_LIGHT0);
+	}
 
-	/* Swap Buffers to Make it show up on screen */
+	//Creates either a single viewport or four seperate viewports depending on a key press
+	if (singleViewport)
+	{
+		//Creates a full screen viewport and then draws a solid mesh into it (Mesh = monkey)
+		//*****************************************************************************************
+		glViewport(0, 0, windowWidth, windowHeight);
+
+		glBegin(GL_TRIANGLES);
+		{
+			if (lightingEnabled)
+				glColor3f(0.33f, 0.22f, 0.78f);
+
+			model3.draw();
+		}
+		glEnd();
+	}
+	else
+	{
+		//Creates viewport 1 (bottom left) and then draws a wireframe mesh into it (Mesh = monkey)
+		//*****************************************************************************************
+		glViewport(0, 0, windowWidth / 2, windowHeight / 2);
+
+		glBegin(GL_LINES);
+		{
+			glColor3f(0.33, 0.22f, 0.78f);
+			model1.draw();
+		}
+		glEnd();
+
+		//Creates viewport 2 (top right) and then draws a wireframe mesh into it (Mesh = chest)
+		//*****************************************************************************************
+		glViewport(windowWidth / 2, windowHeight / 2, windowWidth / 2, windowHeight / 2);
+
+		glBegin(GL_LINES);
+		{
+			glColor3f(1.0f, 0.5f, 0.33f);
+			model2.draw();
+		}
+		glEnd();
+
+		//Creates viewport 3 (top left) and then draws a solid mesh into it (Mesh = sphere)
+		//*****************************************************************************************
+		glViewport(0, windowHeight / 2, windowWidth / 2, windowHeight / 2);
+
+		glBegin(GL_TRIANGLES);
+		{
+			glColor3f(0.5f, 1.0f, 0.33f);
+			model3.draw();
+		}
+		glEnd();
+
+		//Creates viewport 4 (bottom right) and then draws a solid mesh into it (Mesh = crate)
+		//*****************************************************************************************
+		glViewport(windowWidth / 2, 0, windowWidth / 2, windowHeight / 2);
+
+		glBegin(GL_TRIANGLES);
+		{
+			glColor3f(0.5f, 0.5f, 1.0f);
+			model4.draw();
+		}
+		glEnd();
+	}
+
+	/* Swap Buffers to make it show up on screen */
 	glutSwapBuffers();
+
 }
 
 
@@ -75,26 +194,13 @@ void KeyboardCallbackFunction(unsigned char key, int x, int y)
 {
 	std::cout << "Key Down:" << (int)key << std::endl;
 
-	/* ADDED, moves the square around using WASD for x-axis and y-axis, also X & C move along the z-axis*/
-	if (key == 'w')
-		squarePosY += 0.02f;
-	else if (key == 's')
-		squarePosY -= 0.02f;
-	else if (key == 'a')
-		squarePosX -= 0.02f;
-	else if (key == 'd')
-		squarePosX += 0.02f;
-	else if (key == 'c')
-		squarePosZ += 0.02f;
-	else if (key == 'x')
-		squarePosZ -= 0.02f;
+	//Keys that were added by us
+	if (key == 'l')
+		toggleLighting();
+	else if (key == 'v')
+		toggleViewports();
 
-	/* ADDED, scales the square slightly using ',' and '.' */
-	if (key == ',')
-		squareSize -= 0.01f;
-	else if (key == '.')
-		squareSize += 0.01f;
-
+	//Keys that were set up when Mike and Thomas made this engine
 	switch (key)
 	{
 	case 32: // the space bar
@@ -170,7 +276,7 @@ void MouseClickCallbackFunction(int button, int state, int x, int y)
 		if (state == GLUT_DOWN)
 			std::cout << "MIDDLE CLICK \t Mouse X: " << x << "\tMouse Y: " << y << std::endl;
 	}
-	
+
 }
 
 
@@ -199,13 +305,14 @@ void MousePassiveMotionCallbackFunction(int x, int y)
 */
 int main(int argc, char **argv)
 {
-	model.scale(0.5f);
+	//Sets up all of the opengl stuff, passes on argc and argv because gluInit needs them
+	initGLValues(argc, argv);
 
-	/* initialize the window and OpenGL properly */
-	glutInit(&argc, argv);
-	glutInitWindowSize(windowWidth, windowHeight);
-	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE);
-	glutCreateWindow("Game Window");
+	//Scales the models to a good view size
+	model1.scale(0.5f);
+	model2.scale(0.5f);
+	model3.scale(0.5f);
+	model4.scale(1.0f);
 
 	/* set up our function callbacks */
 	glutDisplayFunc(DisplayCallbackFunction); //Draw
@@ -217,7 +324,7 @@ int main(int argc, char **argv)
 	glutPassiveMotionFunc(MousePassiveMotionCallbackFunction); //Mouse move passive (ie: move without clicking)
 	glutTimerFunc(1, TimerCallbackFunction, 0); //Timer Function / Clock tick function / Time step
 
-	/* start the event handler */
+												/* start the event handler */
 	glutMainLoop();
 
 	return 0;

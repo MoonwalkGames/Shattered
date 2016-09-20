@@ -12,7 +12,7 @@ void Mesh::draw() const
 {
 	/* Passes OpenGL each of the vertices for the mesh every frame */
 	for (int i = 0; i < numFaces; i++)
-		faces[i].draw();	
+		faces[i].draw();
 }
 
 void Mesh::loadOBJ(const string& fileName)
@@ -123,14 +123,14 @@ void Mesh::loadOBJ(const string& fileName)
 				newVertices[j].position.y = posData[(posNumber * 3) + 1];
 				newVertices[j].position.z = posData[(posNumber * 3) + 2];
 			}
-			
+
 			//Ensures that uv data was supplied
 			if (uvData.size() > 0)
 			{
 				newVertices[j].uvCoord.x = uvData[uvNumber * 2];
 				newVertices[j].uvCoord.y = uvData[(uvNumber * 2) + 1];
 			}
-			
+
 			//Ensures that normal data was supplied
 			if (normalData.size() > 0)
 			{
@@ -139,13 +139,11 @@ void Mesh::loadOBJ(const string& fileName)
 				newVertices[j].normal.z = normalData[(normalNumber * 3) + 2];
 			}
 		}
-		
+
 		newFace = Face(newVertices[0], newVertices[1], newVertices[2]);
 		faces.push_back(newFace);
 	}
-
 	orderVertices();
-
 }
 
 void Mesh::output() const
@@ -166,7 +164,7 @@ void Mesh::scale(float scaleFactor)
 	}
 }
 
-//Need to order the vertices in a counter clockwise direction, basically calculates the z direction of the face normal (towards or away from the camera)
+//Need to order the vertices in a counter clockwise direction, basically calculates the z direction of the face normal (towards or away from the camera) and rewinds the vertices if needed
 void Mesh::orderVertices()
 {
 	for (int i = 0; i < numFaces; i++)
@@ -176,7 +174,7 @@ void Mesh::orderVertices()
 
 		float zValue = aToB.x * bToC.y - aToB.y * bToC.x;
 
-		/* Checks if the z-direction of the cross product of the verex vectors is -ve. If it is, the face needs to be rewound which just involves switching 2 of the vertices */
+		/* Checks if the z-direction of the cross product of the vertex vectors is -ve. If it is, the face needs to be rewound which just involves switching 2 of the vertices */
 		if (zValue < 0.0f)
 		{
 			Vertex temp = faces[i].vertices[0];
